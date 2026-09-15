@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../../docs/media/logos/favicon.ico">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-ProperDocs 1.6.7, mkdocs-material-9.7.7">
     
     
       
@@ -33,7 +33,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -3456,26 +3456,26 @@
 </ol>
 <h4 id="configuring-the-admin-account">Configuring the Admin Account<a class="headerlink" href="#configuring-the-admin-account" title="Permanent link">&para;</a></h4>
 <p>By default, an admin user named <code>perforce</code> is created:</p>
-<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">&quot;p4_server&quot;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;modules/perforce/modules/p4-server&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">"p4_server"</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"modules/perforce/modules/p4-server"</span>
 <span class="w">    </span><span class="p">...</span>
-<span class="c1">    # Uses default admin_username = &quot;perforce&quot;</span>
+<span class="c1">    # Uses default admin_username = "perforce"</span>
 <span class="c1">    # Password auto-generated and stored in Secrets Manager</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>To customize the admin username:</p>
-<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">&quot;p4_server&quot;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;modules/perforce/modules/p4-server&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">"p4_server"</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"modules/perforce/modules/p4-server"</span>
 <span class="w">    </span><span class="p">...</span>
-<span class="w">    </span><span class="na">admin_username</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myadmin&quot;</span>
+<span class="w">    </span><span class="na">admin_username</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"myadmin"</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>To use an existing password secret:</p>
-<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">&quot;p4_server&quot;</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;modules/perforce/modules/p4-server&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="kr">module</span><span class="w"> </span><span class="nv">"p4_server"</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="na">source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"modules/perforce/modules/p4-server"</span>
 <span class="w">    </span><span class="p">...</span>
-<span class="w">    </span><span class="na">admin_username</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myadmin&quot;</span>
-<span class="w">    </span><span class="na">admin_password_secret_arn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;arn:aws:secretsmanager:us-west-2:123456789012:secret:MyAdminPassword-a1b2c3&quot;</span>
+<span class="w">    </span><span class="na">admin_username</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">"myadmin"</span>
+<span class="w">    </span><span class="na">admin_password_secret_arn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"arn:aws:secretsmanager:us-west-2:123456789012:secret:MyAdminPassword-a1b2c3"</span>
 <span class="p">}</span>
 </code></pre></div>
 <!-- markdownlint-disable -->
@@ -4194,7 +4194,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["content.code.annotate", "content.code.copy", "content.tabs.link", "search.suggest", "search.highlight", "search.share", "navigation.sections", "navigation.indexes", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.collapse", "navigation.instant", "navigation.footer", "toc.follow", "toc.sticky", {"emoji_index": "twemoji"}], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
      
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../../../js/open_in_new_tab.js"></script>
       

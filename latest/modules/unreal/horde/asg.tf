@@ -3,7 +3,23 @@ locals {
     p4_trust_bucket             = local.need_p4_trust && length(var.agents) > 0 ? aws_s3_bucket.ansible_playbooks[0].id : null
     fully_qualified_domain_name = var.fully_qualified_domain_name
     dotnet_runtime_version      = var.agent_dotnet_runtime_version
+    p4_port                     = var.p4_port
+    agent_working_dir           = var.agent_working_dir
+    enable_long_paths           = var.agent_enable_long_paths
+    uba_compute_ports           = var.agent_uba_compute_ports
+    uba_horde_pool              = var.agent_uba_horde_pool
+    uba_max_workers             = var.agent_uba_max_workers
   }))
+
+  # The SSM/Ansible enrollment association targets ONLY Linux agents (AMI
+  # platform == ""); Windows agents are configured via user_data instead. Count
+  # the Linux agent launch templates so the association is skipped entirely when
+  # every agent pool is Windows - otherwise its target list is empty and SSM
+  # rejects the CreateAssociation with "Tag or InstanceIds values cannot be
+  # empty."
+  linux_agent_count = length([
+    for name, ami in data.aws_ami.unreal_horde_agent_ami : name if ami.platform == ""
+  ])
 }
 
 # Need to fetch the AMI info to determine the platform
@@ -253,7 +269,11 @@ resource "aws_ssm_document" "ansible_run_document" {
 }
 
 resource "aws_ssm_association" "configure_unreal_horde_agent" {
-  count            = length(var.agents) > 0 ? 1 : 0
+  # Only create the Linux enrollment association when at least one agent pool is
+  # Linux. All-Windows deployments (e.g. the iSCSI/NTFS SAN pipeline) configure
+  # agents via user_data and have no Linux targets, which would make the SSM
+  # target list empty and fail CreateAssociation.
+  count            = length(var.agents) > 0 && local.linux_agent_count > 0 ? 1 : 0
   association_name = "ConfigureUnrealHordeAgent"
   name             = aws_ssm_document.ansible_run_document[0].name
   parameters = {

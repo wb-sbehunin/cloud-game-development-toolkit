@@ -35,6 +35,10 @@ resource "aws_ecs_task_definition" "unreal_horde_task_definition" {
     name = "unreal-horde-config"
   }
 
+  volume {
+    name = "unreal-horde-data"
+  }
+
   container_definitions = jsonencode(concat([
     {
       name  = var.container_name
@@ -99,11 +103,15 @@ resource "aws_ecs_task_definition" "unreal_horde_task_definition" {
         {
           sourceVolume  = "unreal-horde-config",
           containerPath = "/app/config"
+        },
+        {
+          sourceVolume  = "unreal-horde-data",
+          containerPath = "/app/Data"
         }
       ],
       dependsOn = concat(
         [{
-          containerName = "unreal-horde-docdb-cert",
+          containerName = "unreal-horde-init",
           condition     = "SUCCESS"
         }],
         local.need_p4_trust ? [{
@@ -113,15 +121,74 @@ resource "aws_ecs_task_definition" "unreal_horde_task_definition" {
       )
     },
     {
-      name                     = "unreal-horde-docdb-cert",
-      image                    = "public.ecr.aws/docker/library/bash:5.3",
-      essential                = false
-      command                  = ["wget", "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem", "-P", "/app/config/"]
+      name      = "unreal-horde-init",
+      image     = "public.ecr.aws/docker/library/bash:5.3",
+      essential = false
+      # The Perforce credentials never appear in this command (nor in the task
+      # definition JSON or Terraform state): server.json is rendered with
+      # __P4_USERNAME__/__P4_PASSWORD__ placeholders, and ECS injects the real
+      # values from p4_credentials_secret_arn as environment variables (see
+      # local.horde_init_secrets) which this script substitutes in at startup.
+      # bash (not sh) is required for the ${var//pattern/replacement} expansions,
+      # and the rendered server.json is deliberately never printed to the logs.
+      command = ["bash", "-ec", join("\n", compact([
+        "wget -O /app/config/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem",
+        "server_json='${replace(local.server_json, "'", "'\\''")}'",
+        var.p4_credentials_secret_arn != null ? <<-EOT
+          bs='\' qt='"'
+          u=$${P4_USERNAME//"$bs"/"$bs$bs"}; u=$${u//"$qt"/"$bs$qt"}
+          p=$${P4_PASSWORD//"$bs"/"$bs$bs"}; p=$${p//"$qt"/"$bs$qt"}
+          server_json=$${server_json//__P4_USERNAME__/"$u"}
+          server_json=$${server_json//__P4_PASSWORD__/"$p"}
+        EOT
+        : null,
+        "printf '%s' \"$server_json\" > /app/Data/server.json",
+        "echo 'Wrote /app/Data/server.json'",
+        # Only write globals.json when the consumer actually supplied content. The variable
+        # defaults to "" (not null), so guarding on `!= null` alone is always true and would
+        # write an EMPTY /app/Data/globals.json — worse than writing nothing, since Horde then
+        # loads a blank config. Require a non-empty string before writing.
+        #
+        # Horde 5.5 resolves the Perforce cluster for stream polling from globals.json
+        # perforceClusters[].credentials and does NOT fall back to server.json for that path.
+        # So the same __P4_USERNAME__/__P4_PASSWORD__ placeholder substitution applied to
+        # server.json above is applied here too: a consumer places those placeholders inside a
+        # perforceClusters[].credentials entry and the init container fills them in from the
+        # p4_credentials_secret_arn-derived env vars. The credentials therefore never appear in
+        # the passed-in config_globals_json, the task definition JSON, or the Terraform state.
+        #
+        # ORDERING IS DELIBERATE (cat-before-substitute): the globals.json file is written with
+        # the placeholders intact, then `cat` prints it to the [INIT] log for deploy diagnostics
+        # (showing __P4_PASSWORD__ as a literal placeholder — never the real secret), and ONLY
+        # AFTER that are the credentials substituted in place. This keeps the diagnostic truthful
+        # about structure without leaking the injected password to CloudWatch.
+        #
+        # BACKWARD COMPATIBLE: if config_globals_json contains no __P4_PASSWORD__/__P4_USERNAME__
+        # placeholder the substitution is a harmless no-op, so existing consumers are unaffected.
+        var.config_globals_json != null && var.config_globals_json != "" ? "printf '%s' '${replace(var.config_globals_json, "'", "'\\''")}' > /app/Data/globals.json" : "echo 'No globals.json to write'",
+        var.config_globals_json != null && var.config_globals_json != "" ? "cat /app/Data/globals.json" : null,
+        (var.config_globals_json != null && var.config_globals_json != "" && var.p4_credentials_secret_arn != null) ? <<-EOT
+          bs='\' qt='"'
+          gu=$${P4_USERNAME//"$bs"/"$bs$bs"}; gu=$${gu//"$qt"/"$bs$qt"}
+          gp=$${P4_PASSWORD//"$bs"/"$bs$bs"}; gp=$${gp//"$qt"/"$bs$qt"}
+          globals_json="$(cat /app/Data/globals.json)"
+          globals_json=$${globals_json//__P4_USERNAME__/"$gu"}
+          globals_json=$${globals_json//__P4_PASSWORD__/"$gp"}
+          printf '%s' "$globals_json" > /app/Data/globals.json
+          echo 'Substituted Perforce credentials into /app/Data/globals.json'
+        EOT
+        : null
+      ]))]
+      secrets                  = local.horde_init_secrets
       readonly_root_filesystem = false
       mountPoints = [
         {
           sourceVolume  = "unreal-horde-config",
           containerPath = "/app/config"
+        },
+        {
+          sourceVolume  = "unreal-horde-data",
+          containerPath = "/app/Data"
         }
       ]
       logConfiguration = {
@@ -129,7 +196,7 @@ resource "aws_ecs_task_definition" "unreal_horde_task_definition" {
         options = {
           awslogs-group         = aws_cloudwatch_log_group.unreal_horde_log_group.name
           awslogs-region        = data.aws_region.current.id
-          awslogs-stream-prefix = "[DOCDB CERT]"
+          awslogs-stream-prefix = "[INIT]"
         }
       },
     }],
